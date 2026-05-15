@@ -205,6 +205,14 @@ tasks:
   - task: Finish
 
   - task: zOSConnect
+
+    # Custom task for Vanilla JS frontend build
+  - task: VanillaFrontend
+    script: groovy/VanillaFrontend.groovy
+
+  # Custom task for server.xml packaging
+  - task: ServerXmlPackager
+    script: groovy/ServerXmlPackager.groovy
   
   # default empty Languages stage
   # to be replaced by content of Languges.yaml
