@@ -243,11 +243,13 @@ application:
     - task: VanillaFrontend
       variables:
         - name: shellEnvironment
-          value: /bin/bash
+          value: "/usr/lpp/IBM/foz/v1r1/bash/bash/bin/bash"
+        - name: javaHome
+          value: "/usr/local/sandboxes/tools/J17.0_64"
         - name: vanillaFrontendPath
-          value: src/frontend
+          value: "src/bank-application-frontend-vanilla"
         - name: vanillaWarName
-          value: bank-of-z-frontend.war
+          value: "bank-frontend-vanilla.war"
 
     # ----------------------------------------------------------
     # ServerXmlPackager task
@@ -256,14 +258,15 @@ application:
     # that will be replaced with environment-specific values during
     # deployment.
     # ----------------------------------------------------------
+    
     - task: ServerXmlPackager
       variables:
         - name: shellEnvironment
-          value: /bin/bash
+          value: "/usr/lpp/IBM/foz/v1r1/bash/bash/bin/bash"
         - name: serverXmlPath
-          value: src/api/src/main/liberty/config/server.xml
+          value: "src/api/src/main/liberty/config/server.xml"
         - name: cicsXmlPath
-          value: src/api/src/main/liberty/config/cics.xml
+          value: "src/api/src/main/liberty/config/cics.xml"
     
     - task: zOSConnect
       variables:

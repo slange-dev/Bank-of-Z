@@ -207,6 +207,12 @@ tasks:
             copyMode: LOAD
           - deployType: PSBLOAD
             copyMode: LOAD
+          - deployType: CONFIG
+            copyMode: TEXT
+          - deployType: ZOSCONNECT-CONFIG
+            copyMode: TEXT
+          - deployType: WAR
+            copyMode: BINARY
 
   # build finialization
   - task: Finish
