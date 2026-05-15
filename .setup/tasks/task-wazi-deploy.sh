@@ -188,3 +188,43 @@ if [ "$rc" -ne 0 ]; then
 fi
 
 print_info "${CYAN}[WAZIDEPLOY]${NC} Deployment process completed successfully"
+
+# =========================
+# Deploy z/OS Connect artifacts
+# =========================
+print_info "${CYAN}[WAZIDEPLOY]${NC} Deploying z/OS Connect artifacts"
+
+# Find the extraction directory from wazi-deploy work folder
+EXTRACT_DIR="$SCRIPTS_DIR/work"
+
+if [ -d "$EXTRACT_DIR" ]; then
+    ZOSCONNECT_DEPLOY_SCRIPT="$SCRIPTS_DIR/../deploy/zosconnect-deploy.sh"
+    
+    if [ -f "$ZOSCONNECT_DEPLOY_SCRIPT" ]; then
+        print_info "${CYAN}[WAZIDEPLOY]${NC} Calling z/OS Connect deployment script"
+        
+        # Get z/OS Connect server directory from config.yaml
+        ZOSCONNECT_SERVER_DIR=$(get_section_value 'zosconnect' 'server_dir')
+        
+        bash "$ZOSCONNECT_DEPLOY_SCRIPT" "$EXTRACT_DIR" "$ZOSCONNECT_SERVER_DIR"
+        
+        if [ $? -eq 0 ]; then
+            print_success "${CYAN}[WAZIDEPLOY]${NC} z/OS Connect deployment completed"
+        else
+            print_error "${CYAN}[WAZIDEPLOY]${NC} z/OS Connect deployment failed"
+            exit 1
+        fi
+    else
+        print_warning "${CYAN}[WAZIDEPLOY]${NC} z/OS Connect deployment script not found at: $ZOSCONNECT_DEPLOY_SCRIPT"
+    fi
+else
+    print_warning "${CYAN}[WAZIDEPLOY]${NC} Extraction directory not found - skipping z/OS Connect deployment"
+fi
+
+# =========================
+# Cleanup
+# =========================
+print_info "${CYAN}[WAZIDEPLOY]${NC} Cleaning up package file"
+rm -f "$PACKAGE_URL"
+
+print_success "${CYAN}[WAZIDEPLOY]${NC} Wazi Deploy process completed successfully"

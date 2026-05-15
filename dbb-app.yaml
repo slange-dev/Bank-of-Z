@@ -15,6 +15,13 @@
 # ============================================================
 
 version: 1.0.0
+
+#########################################################
+# Import custom task configurations
+#########################################################
+include:
+  - file: .setup/build/groovy/CustomTasks.yaml
+
 application:
   name: BANKZ
 
@@ -208,9 +215,16 @@ application:
           value: IMSLOAD
           
     - task: MetadataInit
-      variables: 
+      variables:
        - name: fileLocation # Location of file system metadata store.
          value: /usr/local/sandboxes  # Default is the $HOME environment variable.
+
+    # ----------------------------------------------------------
+    # Custom Groovy tasks for frontend and configuration packaging
+    # Defined in: .setup/build/groovy/CustomTasks.yaml
+    # ----------------------------------------------------------
+    - task: VanillaFrontend
+    - task: ServerXmlPackager
 
     # ----------------------------------------------------------
     # Assembler task

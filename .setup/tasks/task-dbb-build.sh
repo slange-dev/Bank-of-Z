@@ -37,6 +37,24 @@ export GRADLE_USER_HOME="$(get_section_value 'sandbox' 'path')/.gradle"
 export GRADLE_OPTS="-Dfile.encoding=UTF-8"
 
 # =========================
+# Convert Groovy scripts to IBM-1047 encoding
+# =========================
+print_info "Converting DBB Groovy scripts to IBM-1047 encoding..."
+GROOVY_CONVERT_SCRIPT="$SCRIPTS_DIR/../dbb/custom-tasks/convert-encoding.sh"
+if [ -f "$GROOVY_CONVERT_SCRIPT" ]; then
+    chmod +x "$GROOVY_CONVERT_SCRIPT"
+    cd "$SCRIPTS_DIR/../dbb/custom-tasks" && ./convert-encoding.sh
+    if [ $? -eq 0 ]; then
+        print_success "Groovy script encoding conversion successful"
+    else
+        print_warning "Groovy script encoding conversion failed, but continuing..."
+    fi
+    cd - > /dev/null
+else
+    print_warning "Groovy encoding conversion script not found, skipping..."
+fi
+
+# =========================
 # Temporary log
 # =========================
 TMP_LOG="/tmp/dbb_build_$$.log"

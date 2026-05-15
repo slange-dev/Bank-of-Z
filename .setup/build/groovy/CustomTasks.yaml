@@ -1,0 +1,52 @@
+---
+#
+# Licensed materials - Property of IBM
+# 5655-AC5 Copyright IBM Corp. 2024, 2026
+# All rights reserved
+# US Government users restricted rights  -  Use, duplication or
+# disclosure restricted by GSA ADP schedule contract with IBM Corp.
+#
+#########################################################
+# Custom Groovy task declarations for Bank-of-Z
+#########################################################
+version: 1.0.0
+
+#########################################################
+# Custom task definitions
+#########################################################
+tasks:
+  # ----------------------------------------------------------
+  # VanillaFrontend task
+  # Packages the vanilla JavaScript/HTML frontend into a WAR file
+  # for deployment to z/OS Connect Liberty server.
+  # ----------------------------------------------------------
+  - name: VanillaFrontend
+    type: groovy
+    script: ${dbb.build}/groovy/VanillaFrontend.groovy
+    variables:
+      - name: shellEnvironment
+        value: /bin/bash
+      - name: vanillaFrontendPath
+        value: src/frontend
+      - name: vanillaWarName
+        value: bank-of-z-frontend.war
+
+  # ----------------------------------------------------------
+  # ServerXmlPackager task
+  # Packages Liberty server.xml and cics.xml configuration files
+  # for z/OS Connect deployment. These files contain placeholders
+  # that will be replaced with environment-specific values during
+  # deployment.
+  # ----------------------------------------------------------
+  - name: ServerXmlPackager
+    type: groovy
+    script: ${dbb.build}/groovy/ServerXmlPackager.groovy
+    variables:
+      - name: shellEnvironment
+        value: /bin/bash
+      - name: serverXmlPath
+        value: src/api/src/main/liberty/config/server.xml
+      - name: cicsXmlPath
+        value: src/api/src/main/liberty/config/cics.xml
+
+# Made with Bob
