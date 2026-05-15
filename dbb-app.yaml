@@ -39,13 +39,15 @@ application:
     # ----------------------------------------------------------
     - task: ImpactAnalysis
       variables:
-      - name: sourceDirs
-        value:
+        - name: sourceDirs
+          value:
             - "src/base"
             - "src/api/src/main/api"
             - "src/frontend"
-      - name: continueOnScanFailure
-        value: true
+        
+        - name: continueOnScanFailure
+          value: true
+        
         # Uncomment to log every file scanned during analysis:
         #- name: printScannedItems
         #  value: true
