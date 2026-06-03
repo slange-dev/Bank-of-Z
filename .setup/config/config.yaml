@@ -110,7 +110,7 @@ taz:
   # Load library used during execution
   library: ${app.base_name}.${app.zos_version}.LOADLIB
   # STEPLIB for runtime/debug
-  steplib: EQAW.VHR0M0.PTF.SEQAMOD
+  steplib: EQAW.SEQAMOD
 
 # z/OS Connect (API exposure)
 zosconnect:

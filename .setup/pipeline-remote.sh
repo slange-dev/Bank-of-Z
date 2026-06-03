@@ -28,6 +28,7 @@ stage_execute_pipeline() {
     fi
     print_info "  - Run DBB build"
     print_info "  - Deploy build"
+    print_info "  - Run unit test"
     echo ""
     
     if [[ "$EXECUTION_MODE" != "grub" ]]; then
