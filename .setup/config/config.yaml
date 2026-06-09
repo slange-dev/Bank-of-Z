@@ -1,0 +1,145 @@
+---
+#########################################################
+# Setup Configuration for Pipeline Simulation
+#########################################################
+version: 1.0.0
+
+# Git repositories to clone
+repositories:
+  - name: dbb
+    url: https://github.com/IBM/dbb.git
+    target_dir: dbb
+
+# Java Home
+java:
+  java_home: /usr/local/sandboxes/tools/J21.0_64
+
+# Application metadata
+app:
+  # Application name
+  base_name: BANKZ
+  # Application short name (max 4 chars)
+  short_name: BOZ
+  # z/OS version used for dataset naming
+  zos_version: V0R1M0
+
+# Sandbox root directory (USS)
+sandbox:
+  # Root path of the project on the remote server
+  path: /usr/local/sandboxes/bank-of-z
+
+# Z configuration tools
+zconfig:
+  # Z Config installation directory
+  zconfig_home: /usr/local/sandboxes/tools/zconfig
+  # CICS Resource Builder installation
+  zcb_home: /usr/local/sandboxes/tools/zrb/cics-resource-builder-1.0.6
+  # Java runtime for Z tools
+  java_home: ${java.java_home}
+
+# DBB (Dependency Based Build)
+dbb:
+  # DBB installation directory
+  dbb_home: /usr/local/sandboxes/tools/dbb
+  # Java runtime for DBB
+  java_home: ${java.java_home}
+  # DBB build output directory
+  dbb_build: ${sandbox.path}/${REPO_NAME}/.setup/build
+  # DBB application configuration file
+  dbb_app_conf: ${sandbox.path}/${REPO_NAME}/dbb-app.yaml
+  # DBB working directory (source root)
+  dbb_cwd: ${sandbox.path}/${REPO_NAME}/
+  # DBB log directory
+  dbb_log_dir: ${sandbox.path}/logs/dbb
+  # API build output directory
+  api_base: ${sandbox.path}/zDevOps/applications/CBSA/application/src/zCEE-API/cbsa-api/build
+
+# zBuilder framework configuration
+zbuilder:
+  # Local source directory
+  source_dir: ${sandbox.path}/${REPO_NAME}/.setup/build
+  # Target USS directory for upload
+  target_dir: ${sandbox.path}/zBuilder
+  # Java home (min version 17)
+  java_home: ${java.java_home}
+
+# ZCodeScan (static analysis)
+zcodescan:
+  # ZCodeScan installation (Python environment)
+  zcodescan_home: /global/opt/pyenv/akf
+  # Java runtime for scanning tools
+  java_home: ${java.java_home}
+  # Working directory
+  cwd_dir: ${sandbox.path}
+  # Source directory to scan
+  src_dir: ${sandbox.path}/${REPO_NAME}/src/base
+  # Output directory for scan reports
+  output_dir: ${sandbox.path}/zcodescan
+  # Rules file to apply
+  rule_file: ${sandbox.path}/${REPO_NAME}/zcodescan/zcodescan-rules.yaml
+  # Source encoding (z/OS default encoding)
+  src_encoding: IBM-1047
+  # ZCodeScan RESAPI connection info to check for IDZ EE license.
+  config_file: ${HOME}/zcs_config_file.yml
+
+# Wazi Deploy (deployment automation)
+wazideploy:
+  # Wazi Deploy installation
+  wazideploy_home: /global/opt/pyenv/gdp
+  # CICS/DB2 deployment method (from DBB repo)
+  deployment_method_cics: ${sandbox.path}/dbb/WaziDeploy/zDeploy/deployment-configuration/deployment-method.yml
+  # z/OS Connect deployment method
+  deployment_method: ${sandbox.path}/${REPO_NAME}/.setup/deploy/deployment-method.yml
+  # Environment-specific deployment configuration
+  deployment_envfile: ${sandbox.path}/${REPO_NAME}/.setup/deploy/Development.yml
+  # Deploy types mapping file
+  types_pattern_mapping: ${sandbox.path}/${REPO_NAME}/.setup/deploy/types_pattern_mapping.yml
+  # zDeploy root directory
+  zdeploy_dir: ${sandbox.path}/dbb/WaziDeploy/zDeploy
+  # Deploy log directory
+  deploy_log_dir: ${sandbox.path}/logs/deploy
+
+# TAZ Unit Test configuration
+taz:
+  # TAZ CLI installation directory
+  taz_home: /usr/local/sandboxes/tools/taz-280/test-cli
+  # Root directory containing test suites
+  test_dir: ${sandbox.path}/${REPO_NAME}
+  # JES procedure library
+  proclib: SYS1.PROCLIB
+  # Load library used during execution
+  library: ${app.base_name}.${app.zos_version}.LOADLIB
+  # STEPLIB for runtime/debug
+  steplib: EQAW.VHR0M0.PTF.SEQAMOD
+
+# z/OS Connect (API exposure)
+zosconnect:
+  # z/OS Connect installation
+  zosconnect_home: /usr/lpp/IBM/zosconnect/bin/
+  # z/OS Connect server directory
+  server_dir: ${sandbox.path}/zosconnect-server
+  # z/OS Connect server name
+  server_name: bankOfZServer
+  # HTTP/HTTPS ports
+  http_port: 9080
+  https_port: 9443
+
+# ZOAU installtion directory
+zoau:
+  zoau_home: /usr/lpp/IBM/zoautil
+
+# Zowe CLI configuration
+zowe:
+  # RSE profile name to use (optional, defaults to 'rse')
+  # Set via environment variable: export ZOWE_RSE_PROFILE=bankz
+  rse_profile: bankz
+
+# CICS attributes
+cics:
+  host: localhost
+  user: ${CICS_USER} # env var
+  password: ${CICS_PASSWORD} # env var
+  cmci_port: 27100
+  ipic_port: 4320
+  debug_port: 27103
+
