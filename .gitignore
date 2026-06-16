@@ -2,7 +2,6 @@
 /.settings/
 /.bob/*.json
 /.setup/.env
-provisioning/
 /.pydevproject
 build.log
 /bin/
@@ -18,3 +17,4 @@ vsix-extensions/
 *.vsix
 /.taz-unit-test
 tools/
+imsbank_provisioning/
