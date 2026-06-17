@@ -36,6 +36,16 @@ export LIBPATH="$ZOAU_HOME/lib:${LIBPATH:-}"
 # =========================
 if [ -f "$ZCONFIG_HOME/bin/activate" ]; then
     source "$ZCONFIG_HOME/bin/activate"
+    
+    # Display zconfig version
+    print_info "${CYAN}[ZCONFIG-IMS]${NC} Checking zconfig version..."
+    if command -v zconfig &> /dev/null; then
+        ZCONFIG_VERSION=$(zconfig --version 2>&1 || echo "version unknown")
+        print_info "${CYAN}[ZCONFIG-IMS]${NC} zconfig version: $ZCONFIG_VERSION"
+        print_info "${CYAN}[ZCONFIG-IMS]${NC} zconfig location: $(which zconfig)"
+    else
+        print_warning "zconfig command not found in PATH"
+    fi
 else
     print_warning "zconfig virtual environment not found at $ZCONFIG_HOME/bin/activate"
 fi
