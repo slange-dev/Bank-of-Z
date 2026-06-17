@@ -82,7 +82,7 @@ print_info "${CYAN}[ZOSCONNECT]${NC} Generating JCL proc..."
 # Generate server JCL proc
 # =========================
 # Create JCL with each line padded to exactly 80 characters for FB80 dataset
-cat > "/tmp/BAQ${APP_BASE_NAME}.jcl" << 'EOF'
+cat > "/tmp/BAQ${APP_BASE_NAME}.jcl" << EOF
 //BAQBANKZ  PROC PARMS='bankzServer --clean'
 //*
 //* z/OS Connect Enterprise Edition 3.0.0
@@ -99,7 +99,7 @@ cat > "/tmp/BAQ${APP_BASE_NAME}.jcl" << 'EOF'
 //STDENV   DD   *
 _BPX_SHAREAS=YES
 JAVA_HOME=/usr/lpp/java/java21/current_64
-WLP_USER_DIR=/usr/local/sandboxes/bank-of-z/zosconnect-server
+WLP_USER_DIR=${SANDBOX_DIR}/zosconnect-server
 JVM_OPTIONS=-Xmx2048M
 //*
 // PEND
