@@ -45,7 +45,7 @@ This setup automates the preparation of your z/OS USS environment for Bank of Z 
   license_server:
     url: https://127.0.0.1:8195
     user: IBMUSER
-    password: MY_PASSWORD
+    password: MY_PASSWORD  # pragma: allowlist secret
     verify: false
   ``` 
   The password will be encrypted after the very first scan.
@@ -1139,6 +1139,59 @@ dbb:
 
 ### Pipeline Scripts
 
+#### [`pipeline-common.sh`](../.setup/pipeline-common.sh)
+**Purpose**: Common pipeline orchestration script for Bank of Z
+
+**Used by**: Both GRUB and VSCode workflows
+
+**What it does**:
+1. Validates prerequisites
+2. Runs static code scanning (ZCodeScan)
+3. Runs DBB build
+4. Deploys to CICS and/or IMS
+
+**Phases**:
+- `validate-prereqs` - Validate environment
+- `scan` - Run static code analysis
+- `build` - Build with DBB
+- `deploy-cics` - Deploy to CICS only
+- `deploy-ims` - Deploy to IMS only
+- `build-and-deploy-cics` - Build and deploy to CICS only
+- `build-and-deploy-ims` - Build and deploy to IMS only
+- `build-and-deploy-all` - Build and deploy to **BOTH CICS and IMS**
+- `scan-build-and-deploy-cics` - Scan, build, and deploy to CICS only
+- `scan-build-and-deploy-ims` - Scan, build, and deploy to IMS only
+- `scan-build-and-deploy-all` - Scan, build, and deploy to **BOTH CICS and IMS**
+
+**Execution**: Native USS commands (no Zowe CLI needed)
+
+**Examples**:
+```bash
+# Deploy CICS only
+bash .setup/pipeline-common.sh deploy-cics
+
+# Deploy IMS only
+bash .setup/pipeline-common.sh deploy-ims
+
+# Build and deploy CICS only
+bash .setup/pipeline-common.sh build-and-deploy-cics
+
+# Build and deploy IMS only
+bash .setup/pipeline-common.sh build-and-deploy-ims
+
+# Build and deploy BOTH CICS and IMS
+bash .setup/pipeline-common.sh build-and-deploy-all
+
+# Complete workflow for CICS
+bash .setup/pipeline-common.sh scan-build-and-deploy-cics
+
+# Complete workflow for IMS
+bash .setup/pipeline-common.sh scan-build-and-deploy-ims
+
+# Complete workflow for BOTH
+bash .setup/pipeline-common.sh scan-build-and-deploy-all
+```
+
 #### [`pipeline-remote.sh`](../.setup/pipeline-remote.sh)
 **Purpose**: Pipeline simulation script that runs natively on z/OS USS
 
@@ -1228,6 +1281,7 @@ zowe --version
 - [GRUB Workflow Guide](docs/WORKFLOW-GRUB.md) - Detailed GRUB setup and usage
 - [VSCode Task Workflow Guide](docs/WORKFLOW-VSCODE.md) - VSCode task configuration
 - [Configuration Reference](docs/CONFIGURATION.md) - Complete config.yaml guide
+- [IMS Deployment Guide](docs/IMS-DEPLOYMENT.md) - IMS Bank deployment with shell scripts
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## 🔄 Workflow Comparison

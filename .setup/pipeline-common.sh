@@ -100,6 +100,32 @@ stage_deploy_bank_of_z() {
     fi
 }
 
+#########################################################
+# STAGE: Deploy IMS Bank
+#########################################################
+stage_deploy_ims_bank() {
+    print_stage "STAGE: Deploy IMS Bank"
+    
+    # Verify installation script exists
+    if [ ! -f "$BANK_DIR/.setup/tasks/task-ims-deploy.sh" ]; then
+        print_error "Installation script not found: $BANK_DIR/.setup/tasks/task-ims-deploy.sh"
+        exit 1
+    fi
+    
+    # Run installation script
+    print_info "Running IMS Bank deploy script..."
+    print_info "Executing: bash $BANK_DIR/.setup/tasks/task-ims-deploy.sh"
+    cd "$BANK_DIR"
+    
+    set -o pipefail
+    if ${BANK_DIR}/.setup/tasks/task-ims-deploy.sh; then
+        print_success "IMS Bank deployment completed successfully"
+    else
+        print_error "Failed to deploy IMS Bank"
+        exit 1
+    fi
+}
+
 
 #########################################################
 # Main execution helpers
@@ -125,16 +151,33 @@ print_usage() {
     echo "Usage: bash pipeline-common.sh <phase>"
     echo ""
     echo "Phases:"
-    echo "  validate-prereqs  Validate prerequisites (zConfig, DBB, wazi-deploy)"
-    echo "  build             Build the Bank of Z baseline"
-    echo "  deploy            Deploy the Bank of Z baseline"
-    echo "  build-and-deploy  Build and deploy the Bank of Z updates"
+    echo "  validate-prereqs              Validate prerequisites (zConfig, DBB, wazi-deploy)"
+    echo "  scan                          Run static code analysis"
+    echo "  build                         Build the Bank of Z baseline"
+    echo ""
+    echo "  deploy-cics                   Deploy to CICS only"
+    echo "  deploy-ims                    Deploy to IMS only"
+    echo ""
+    echo "  build-and-deploy-cics         Build and deploy to CICS only"
+    echo "  build-and-deploy-ims          Build and deploy to IMS only"
+    echo "  build-and-deploy-all          Build and deploy to BOTH CICS and IMS"
+    echo ""
+    echo "  scan-build-and-deploy-cics    Scan, build, and deploy to CICS only"
+    echo "  scan-build-and-deploy-ims     Scan, build, and deploy to IMS only"
+    echo "  scan-build-and-deploy-all     Scan, build, and deploy to BOTH CICS and IMS"
+    echo ""
+    echo "Backward Compatibility Aliases (these work the same as -cics versions):"
+    echo "  deploy                    → deploy-cics"
+    echo "  build-and-deploy          → build-and-deploy-cics"
+    echo "  scan-build-and-deploy     → scan-build-and-deploy-cics"
     echo ""
     echo "Examples:"
     echo "  bash pipeline-common.sh validate-prereqs"
     echo "  bash pipeline-common.sh build"
-    echo "  bash pipeline-common.sh deploy"
-    echo "  bash pipeline-common.sh build-and-deploy"
+    echo "  bash pipeline-common.sh deploy-cics                # CICS only"
+    echo "  bash pipeline-common.sh deploy-ims                 # IMS only"
+    echo "  bash pipeline-common.sh build-and-deploy-all       # Both CICS and IMS"
+    echo "  bash pipeline-common.sh scan-build-and-deploy-ims  # Full IMS workflow"
 }
 
 print_phase_next_step() {
@@ -210,6 +253,19 @@ main_deploy() {
     print_success "DEPLOY setup completed successfully!"
 }
 
+main_deploy_ims() {
+    echo ""
+    SYS=$(uname -Ia)
+    print_info "Running on: $SYS"
+    echo ""
+
+    stage_deploy_ims_bank
+
+    # Summary
+    print_stage "IMS DEPLOY COMPLETE"
+    print_success "IMS deployment completed successfully!"
+}
+
 #########################################################
 # Main execution
 #########################################################
@@ -232,19 +288,46 @@ main() {
             shift  # Remove 'build' from parameters
             main_build "$@"
             ;;
-        deploy)
+        deploy|deploy-cics)
             main_deploy
             ;;
-        build-and-deploy)
-            shift  # Remove 'build-and-deploy' from parameters
+        deploy-ims)
+            main_deploy_ims
+            ;;
+        build-and-deploy|build-and-deploy-cics)
+            shift  # Remove phase from parameters
             main_build "$@"
             main_deploy
             ;;
-        scan-build-and-deploy)
-            shift  # Remove 'scan-build-and-deploy' from parameters
+        build-and-deploy-ims)
+            shift  # Remove 'build-and-deploy-ims' from parameters
+            main_build "$@"
+            main_deploy_ims
+            ;;
+        build-and-deploy-all)
+            shift  # Remove 'build-and-deploy-all' from parameters
+            main_build "$@"
+            main_deploy
+            main_deploy_ims
+            ;;
+        scan-build-and-deploy|scan-build-and-deploy-cics)
+            shift  # Remove phase from parameters
             main_static_scan
             main_build "$@"
             main_deploy
+            ;;
+        scan-build-and-deploy-ims)
+            shift  # Remove 'scan-build-and-deploy-ims' from parameters
+            main_static_scan
+            main_build "$@"
+            main_deploy_ims
+            ;;
+        scan-build-and-deploy-all)
+            shift  # Remove 'scan-build-and-deploy-all' from parameters
+            main_static_scan
+            main_build "$@"
+            main_deploy
+            main_deploy_ims
             ;;
         -h|--help|help|"")
             print_usage
