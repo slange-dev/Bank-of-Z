@@ -190,6 +190,12 @@ log_warning() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $*" | tee -a "$LOG_FILE"
 }
 
+log_debug() {
+    if [ "${DEBUG:-false}" = "true" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] DEBUG: $*" | tee -a "$LOG_FILE"
+    fi
+}
+
 # =========================
 # ZOAU Utility Functions
 # =========================
@@ -237,7 +243,7 @@ wait_for_job() {
     local elapsed=0
     
     while true; do
-        # Query job status with jls
+        # Query job status with jls - output format: jobid status rc
         local job_info=$(jls -j "$job_id" 2>/dev/null || echo "")
         
         if [ -z "$job_info" ]; then
@@ -245,19 +251,33 @@ wait_for_job() {
             return 1
         fi
         
-        # Parse status and return code
-        status=$(echo "$job_info" | awk '{print $2}')
-        rc=$(echo "$job_info" | awk '{print $3}')
+        # Parse status and return code - jls output may be JSON or space-separated
+        # Try JSON parsing first, then fall back to space-separated
+        if echo "$job_info" | grep -q '"status"'; then
+            # JSON format
+            status=$(echo "$job_info" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
+            rc=$(echo "$job_info" | sed -n 's/.*"rc":"\([^"]*\)".*/\1/p')
+        else
+            # Space-separated format
+            status=$(echo "$job_info" | awk '{print $2}')
+            rc=$(echo "$job_info" | awk '{print $3}')
+        fi
+        
+        log_debug "Job $job_id: status=$status, rc=$rc"
         
         case "$status" in
-            OUTPUT|COMPLETE)
+            OUTPUT|COMPLETE|CC)
                 log "Job $job_id completed with RC=$rc"
                 
                 # Get job output using ZOAU jcat
-                jcat -j "$job_id" > "${USS_WORK_DIR}/${job_id}.log"
+                jcat -j "$job_id" > "${USS_WORK_DIR}/${job_id}.log" 2>&1
                 
-                if [ "$rc" -gt "$max_rc" ]; then
-                    log_error "Job $job_id failed with RC=$rc (max allowed: $max_rc)"
+                # Convert RC to number for comparison
+                local rc_num=$(echo "$rc" | tr -d '"' | sed 's/^0*//')
+                rc_num=${rc_num:-0}
+                
+                if [ "$rc_num" -gt "$max_rc" ]; then
+                    log_error "Job $job_id failed with RC=$rc_num (max allowed: $max_rc)"
                     cat "${USS_WORK_DIR}/${job_id}.log"
                     return 1
                 fi
@@ -271,11 +291,11 @@ wait_for_job() {
                 ;;
             ABEND)
                 log_error "Job $job_id abended"
-                jcat -j "$job_id"
+                jcat -j "$job_id" 2>&1
                 return 1
                 ;;
             *)
-                log_warning "Unknown job status: $status"
+                log_warning "Unknown job status: $status (raw: $job_info)"
                 sleep 5
                 elapsed=$((elapsed + 5))
                 ;;
@@ -581,6 +601,7 @@ copy_ims_members() {
     fi
     
     # Create JCL to copy members using IEBCOPY
+    # Split member list into individual SELECT statements to avoid line length issues
     local copy_jcl="${USS_WORK_DIR}/COPY_MEMBERS.jcl"
     
     cat > "$copy_jcl" << EOF
@@ -591,9 +612,15 @@ ${JOB_CARD}
 //SYSUT2   DD DISP=SHR,DSN=${target_ds}
 //SYSIN    DD *
   COPY OUTDD=SYSUT2,INDD=SYSUT1
-  SELECT MEMBER=((${member_list}))
-/*
 EOF
+    
+    # Add individual SELECT statements for each member
+    IFS=',' read -ra MEMBERS <<< "$member_list"
+    for member in "${MEMBERS[@]}"; do
+        echo "  SELECT MEMBER=$member" >> "$copy_jcl"
+    done
+    
+    echo "/*" >> "$copy_jcl"
     
     # Submit the copy job
     submit_jcl "$copy_jcl" 0
