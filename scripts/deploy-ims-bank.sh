@@ -274,7 +274,7 @@ wait_for_job() {
 # Verify dataset exists
 verify_dataset() {
     local dsn=$1
-    dls "'${dsn}'" >/dev/null 2>&1
+    dls "$dsn" >/dev/null 2>&1
     return $?
 }
 
