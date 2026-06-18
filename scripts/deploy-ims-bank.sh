@@ -206,8 +206,8 @@ submit_jcl() {
         return 0
     fi
     
-    # Submit JCL using ZOAU jsub command
-    local output=$(jsub "$jcl_file" 2>&1)
+    # Submit JCL using ZOAU jsub command with -f flag for USS files
+    local output=$(jsub -f "$jcl_file" 2>&1)
     local submit_rc=$?
     
     # Extract job ID using sed instead of grep -o (not available on z/OS)
