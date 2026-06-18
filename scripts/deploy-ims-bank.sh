@@ -208,11 +208,14 @@ submit_jcl() {
     
     # Submit JCL using ZOAU jsub command
     local output=$(jsub "$jcl_file" 2>&1)
-    local job_id=$(echo "$output" | grep -oE 'JOB[0-9]+' | head -1)
+    local submit_rc=$?
     
-    if [ -z "$job_id" ]; then
+    # Extract job ID using sed instead of grep -o (not available on z/OS)
+    local job_id=$(echo "$output" | sed -n 's/.*\(JOB[0-9][0-9]*\).*/\1/p' | head -1)
+    
+    if [ $submit_rc -ne 0 ] || [ -z "$job_id" ]; then
         log_error "Failed to submit JCL: $jcl_file"
-        echo "$output"
+        log_error "jsub output: $output"
         return 1
     fi
     
