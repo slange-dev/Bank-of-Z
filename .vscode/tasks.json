@@ -24,7 +24,7 @@
                 "kind": "test",
                 "isDefault": false
             },
-            "detail": "Run Bank of Z pipeline (rebuild and redeploy) via Zowe CLI (runs pipeline-common.sh remotely)"
+            "detail": "Run Bank of Z pipeline build via Zowe CLI (runs pipeline-common.sh remotely)"
         }
     ]
 }
