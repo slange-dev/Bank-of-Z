@@ -3,14 +3,11 @@
 # =========================
 # Source library scripts
 # =========================
-
-echo "Test"
 LOCAL_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CONFIG_FILE="$LOCAL_SCRIPTS_DIR/config.yaml"
 set +e
-# For Grub and or ZOWE CLI
+# Load CICS/IMS credentials
 source $HOME/.profile 2>/dev/null
-echo "Test"
 if git rev-parse --show-toplevel >/dev/null 2>&1; then
     repo_name=$(basename "$(git rev-parse --show-toplevel)")
     if [[ "$repo_name" =~ ^Bank-of-Z ]]; then
@@ -24,7 +21,6 @@ fi
 if command -v chtag >/dev/null 2>&1; then
     chtag -t -c ISO8859-1 "$CONFIG_FILE"
 fi
-set -x
 set -e
 
 export LIB_DIR="$LOCAL_SCRIPTS_DIR/../lib"
@@ -46,6 +42,7 @@ APP_ZOS_VERSION=$(get_section_value 'app' 'zos_version')
 APP_VERSION=$(get_section_value 'app' 'zos_version')
 SANDBOX_DIR=${SANDBOX_DIR:-$(get_section_value 'sandbox' 'path')}
 JAVA_HOME=$(get_section_value 'java' 'java_home')
+PYTHON_HOME=$(get_section_value 'python' 'python_home')
 DBB_REPO_URL=$(get_section_value 'repositories' 'dbb_url')
 ZBUILDER_SOURCE=$(get_section_value 'zbuilder' 'source_dir')
 ZBUILDER_TARGET=$(get_section_value 'zbuilder' 'target_dir')
@@ -63,5 +60,6 @@ fi
 set -a
 source "$ENV_FILE"
 set +a
-echo "Test done"
+export PATH=$PYTHON_HOME/bin:$JAVA_HOME:/bin:$PATH
+echo $PATH
 
