@@ -117,24 +117,40 @@ class CustomersApi extends BaseApi {
         }
     }
 
-    // Stub methods for legacy endpoints not in OpenAPI spec
     /**
-     * Create a new customer (stub - not in OpenAPI spec)
+     * Create a new customer
+     * POST /customers
      * @param {Object} customerData - Customer data
-     * @returns {Promise<Object>} Rejected promise
+     * @param {string} [customerData.title] - Title (Mr, Mrs, Miss, Ms, Dr, Drs, Professor, Sir, Lady, Lord)
+     * @param {string} customerData.firstName - First name (required)
+     * @param {string} customerData.lastName - Last name (required)
+     * @param {string} [customerData.dateOfBirth] - Date of birth (YYYY-MM-DD)
+     * @param {string} [customerData.phoneNumber] - Phone number
+     * @param {Object} [customerData.address] - Address object
+     * @param {string} [customerData.customerStatus] - Customer status
+     * @returns {Promise<CreateCustomerResponse>} Created customer with customerId and sortCode
      */
     async createCustomer(customerData) {
-        throw new Error('Customer creation is not supported in the OpenBanking API specification');
+        return this.request(`${this.configuration.baseUrl}/customers`, {
+            method: 'POST',
+            body: JSON.stringify(customerData)
+        });
     }
 
+    // Stub methods for legacy endpoints not in OpenAPI spec
+
     /**
-     * Update customer (stub - not in OpenAPI spec)
-     * @param {string} customerNumber - Unique customer identifier
+     * Update customer information
+     * PUT /customers/{customerId}
+     * @param {string} customerId - Unique identifier for the customer (numeric, without prefix)
      * @param {Object} customerData - Updated customer data
-     * @returns {Promise<Object>} Rejected promise
+     * @returns {Promise<Customer>} Updated customer details
      */
-    async updateCustomer(customerNumber, customerData) {
-        throw new Error('Customer updates are not supported in the OpenBanking API specification');
+    async updateCustomer(customerId, customerData) {
+        return this.request(`${this.configuration.baseUrl}/customers/${customerId}`, {
+            method: 'PUT',
+            body: JSON.stringify(customerData)
+        });
     }
 
     /**
@@ -254,6 +270,23 @@ class AccountsApi extends BaseApi {
         return this.request(`${this.configuration.baseUrl}/accounts/${accountId}/transactions/${transactionId}`);
     }
 
+    /**
+     * Deposit funds to an account
+     * POST /accounts/{accountId}/deposit
+     * @param {string} accountId - Unique identifier for the account
+     * @param {Object} depositData - Deposit data
+     * @param {number} depositData.amount - Deposit amount (must be positive, minimum 0.01)
+     * @param {string} depositData.sortCode - 6-digit bank sort code
+     * @param {string} [depositData.description] - Description of the deposit (max 40 characters)
+     * @returns {Promise<Object>} Deposit result with updated balances
+     */
+    async depositToAccount(accountId, depositData) {
+        return this.request(`${this.configuration.baseUrl}/accounts/${accountId}/deposit`, {
+            method: 'POST',
+            body: JSON.stringify(depositData)
+        });
+    }
+
     // Stub methods for legacy endpoints not in OpenAPI spec
     /**
      * Create a new account (stub - not in OpenAPI spec)
@@ -344,7 +377,6 @@ export { ApiClient, CustomersApi, AccountsApi, ApiConfiguration };
  * @property {string} firstName - Customer first name
  * @property {string} lastName - Customer last name
  * @property {string} [dateOfBirth] - Customer date of birth (YYYY-MM-DD)
- * @property {string} email - Customer email address
  * @property {string} [phoneNumber] - Customer phone number
  * @property {Address} [address] - Customer address
  * @property {string} [customerStatus] - Current status (ACTIVE, INACTIVE, SUSPENDED)
