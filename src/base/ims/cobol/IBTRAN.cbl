@@ -249,19 +249,24 @@
              USING  IOPCBA, DBPCB1, DBPCB2, DBPCB3.
 
        BEGIN.
-
+           DISPLAY '*** IBTRAN: PROGRAM STARTED ***'.
            MOVE 'N' to JAVA-PRIMED.
            MOVE 0 TO TERM-IO.
            SET ADDRESS OF LTERMPCB TO ADDRESS OF IOPCBA.
-      *     DISPLAY 'IOPCBA   = ' IOPCBA.
-      *     DISPLAY 'LTERMPCB = ' LTERMPCB.
-      *     DISPLAY 'JAVA     = ' JAVA-PRIMED.
+           DISPLAY '*** IBTRAN: ENTERING MESSAGE LOOP ***'.
            PERFORM WITH TEST BEFORE UNTIL TERM-IO = 1
-            DISPLAY 'READY TO CALL DLI'
+            DISPLAY '*** IBTRAN: READY TO CALL GU FOR INPUT ***'
               CALL 'CBLTDLI' USING GU, LTERMPCB, INPUT-AREA
-      *     DISPLAY 'AFTER CALLING DLI'
+              DISPLAY '*** IBTRAN: GU RETURNED, TPSTAT = ' TPSTAT
               IF TPSTAT  = '  ' OR TPSTAT = MESSAGE-EXIST
               THEN
+                DISPLAY '*** IBTRAN: MESSAGE RECEIVED ***'
+                DISPLAY '*** IBTRAN: TRAN-CODE = ' TRAN-CODE
+                DISPLAY '*** IBTRAN: INPUT DATA: ***'
+                DISPLAY '*** IBTRAN: IN-ACCID = ' IN-ACCID
+                DISPLAY '*** IBTRAN: IN-AMOUNT = ' IN-AMOUNT
+                DISPLAY '*** IBTRAN: IN-TRXTYPE = ' IN-TRXTYPE
+                DISPLAY '*** IBTRAN: IN-CUSTID = ' IN-CUSTID
 
       * DOING ACCOUNT DEPOSIT/WITHDRAWAL
                 PERFORM ACCOUNT-ACTIVITY thru ACCOUNT-ACTIVITY-END
@@ -270,6 +275,7 @@
               ELSE
                 IF TPSTAT = NO-MORE-MESSAGE
                 THEN
+                  DISPLAY '*** IBTRAN: NO MORE MESSAGES ***'
                   MOVE 1 TO TERM-IO
                 ELSE
                  DISPLAY 'GU FROM IOPCB FAILED WITH STATUS CODE: '
@@ -280,46 +286,66 @@
 
            IF JAVA-PRIMED = 'Y'
            THEN
-      *      DISPLAY 'DeleteLocalRef HISTSEG-BUFF-PTR'
+             DISPLAY '*** IBTRAN: CLEANING UP JAVA REFERENCES ***'
              Call DeleteLocalRef USING BY VALUE JNIEnvPtr,
                                      BY VALUE HISTSEG-BUFF-PTR
 
-      *      DISPLAY 'DeleteLocalRef DB2InsertTran-class-ref'
              Call DeleteLocalRef USING BY VALUE JNIEnvPtr,
                                      BY VALUE DB2InsertTran-class-ref
            END-IF.
 
-           DISPLAY 'Goback'.
+           DISPLAY '*** IBTRAN: PROGRAM ENDING ***'.
 
            GOBACK.
 
       * PROCEDURE ACCOUNT-ACTIVITY
        ACCOUNT-ACTIVITY.
+           DISPLAY '*** ACCOUNT-ACTIVITY: STARTING ***'.
            MOVE ZEROS TO OUTPUT-AREA.
       * CHECK FOR VALID TRANSACTION TYPE
+           DISPLAY '*** ACCOUNT-ACTIVITY: VALIDATING TRXTYPE ***'.
            IF IN-TRXTYPE NOT = 'd' AND IN-TRXTYPE NOT = 'w' AND
               IN-TRXTYPE NOT = 'D' AND IN-TRXTYPE NOT = 'W'
+             DISPLAY '*** ACCOUNT-ACTIVITY: INVALID TRXTYPE ***'
              MOVE INVALIDTRXTYPE TO MSG-OUT
            ELSE
+             DISPLAY '*** ACCOUNT-ACTIVITY: TRXTYPE VALID ***'
       * RETRIEVE NEXT TRANSACTION ID
              COMPUTE ACCID = FUNCTION NUMVAL ( IN-ACCID )
+             DISPLAY '*** ACCOUNT-ACTIVITY: ACCID = ' ACCID
              SET ADDRESS OF DBPCB TO ADDRESS OF DBPCB1
+             DISPLAY '*** ACCOUNT-ACTIVITY: CALLING GHU FOR ACCOUNT ***'
              CALL 'CBLTDLI'
                USING GHU, DBPCB, ACCOUNT-SEG, ACCOUNT-SSA1
+             DISPLAY '*** ACCOUNT-ACTIVITY: GHU RETURNED, DBSTAT = '
+               DBSTAT
              IF DBSTAT NOT = SPACES
                IF DBSTAT = GB OR DBSTAT = GE
+                 DISPLAY '*** ACCOUNT-ACTIVITY: ACCOUNT NOT FOUND ***'
                  MOVE NOACCOUNT TO MSG-OUT
                ELSE
+                 DISPLAY '*** ACCOUNT-ACTIVITY: BAD STATUS CODE ***'
                  MOVE DBSTAT TO SC
                  MOVE BAD-STATUS TO MSG-OUT
                END-IF
              ELSE
+               DISPLAY '*** ACCOUNT-ACTIVITY: ACCOUNT FOUND ***'
+               DISPLAY '*** ACCOUNT-ACTIVITY: ACCTYPE-ACC = '
+                 ACCTYPE-ACC
+               DISPLAY '*** ACCOUNT-ACTIVITY: BALANCE-ACC = '
+                 BALANCE-ACC
+               DISPLAY '*** ACCOUNT-ACTIVITY: LASTTXID-ACC = '
+                 LASTTXID-ACC
       * UPDATE THE HISTORY SEG
+               DISPLAY '*** ACCOUNT-ACTIVITY: CREATING HISTORY SEG ***'
                COMPUTE ACCID-HIST = ACCID
                COMPUTE TXID-HIST = ACCID-HIST * MULT-FACTOR
                  + LASTTXID-ACC + 1
+               DISPLAY '*** ACCOUNT-ACTIVITY: TXID-HIST = ' TXID-HIST
                MOVE IN-TRXTYPE TO TRANSTYP-HIST
                COMPUTE AMOUNT-HIST = FUNCTION NUMVAL( IN-AMOUNT )
+               DISPLAY '*** ACCOUNT-ACTIVITY: AMOUNT-HIST = '
+                 AMOUNT-HIST
                COMPUTE REFTXID-HIST = 0
 
                MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA
@@ -331,88 +357,129 @@
                MOVE WS-CURRENT-SECOND TO SECOND-TS
                MOVE WS-CURRENT-MILLISECONDS TO MILLISEC-TS
                MOVE TIMESTAMP TO TIMESTMP-HIST
+               DISPLAY '*** ACCOUNT-ACTIVITY: TIMESTMP-HIST = '
+                 TIMESTMP-HIST
 
                IF JAVA-PRIMED = 'N'
                THEN
+                 DISPLAY '*** ACCOUNT-ACTIVITY: PRIMING JAVA ***'
                  PERFORM PRIME-JAVA thru PRIME-JAVA-END
                  MOVE 'Y' TO JAVA-PRIMED
                END-IF
 
       * UPDATE THE BALANCE AND LASTTXID IN THE ACCOUNT SEGMENT FIRST
+               DISPLAY '*** ACCOUNT-ACTIVITY: UPDATING BALANCE ***'
+               DISPLAY '*** ACCOUNT-ACTIVITY: OLD BALANCE = '
+                 BALANCE-ACC
                COMPUTE LASTTXID-ACC = LASTTXID-ACC + 1
-               IF IN-TRXTYPE = 'w'
+               IF IN-TRXTYPE = 'w' OR IN-TRXTYPE = 'W'
+                 DISPLAY '*** ACCOUNT-ACTIVITY: WITHDRAWAL ***'
                  COMPUTE BALANCE-ACC = BALANCE-ACC - AMOUNT-HIST
                ELSE
+                 DISPLAY '*** ACCOUNT-ACTIVITY: DEPOSIT ***'
                  COMPUTE BALANCE-ACC = BALANCE-ACC + AMOUNT-HIST
                END-IF
+               DISPLAY '*** ACCOUNT-ACTIVITY: NEW BALANCE = '
+                 BALANCE-ACC
                
       * SET THE BALANCE IN HISTORY SEGMENT
                COMPUTE BALANCE-HIST = BALANCE-ACC
 
                IF JAVA-PRIMED = 'Y'
                THEN
-                 DISPLAY 'SAVE HISTORY TO DB2'
+                 DISPLAY '*** ACCOUNT-ACTIVITY: SAVE HISTORY TO DB2 ***'
                  PERFORM JAVA-SAVEHIST THRU JAVA-SAVEHIST-END
                END-IF
 
-               DISPLAY 'SAVE HISTORY TO IMS'
+               DISPLAY '*** ACCOUNT-ACTIVITY: SAVE HISTORY TO IMS ***'
                SET ADDRESS OF DBPCB TO ADDRESS OF DBPCB3
                CALL "CBLTDLI"
                  USING ISRT, DBPCB, HISTORY-SEG, HISTORY-SSA1
+               DISPLAY '*** ACCOUNT-ACTIVITY: ISRT RETURNED, DBSTAT = '
+                 DBSTAT
                IF DBSTAT NOT = SPACES
+                 DISPLAY '*** ACCOUNT-ACTIVITY: ISRT FAILED ***'
                  DISPLAY 'BAD STATUS CODE: ' DBSTAT
                  MOVE 1 TO TERM-IO
+               ELSE
+                 DISPLAY '*** ACCOUNT-ACTIVITY: HISTORY SAVED TO IMS ***'
                END-IF
 
+               DISPLAY '*** ACCOUNT-ACTIVITY: UPDATING ACCOUNT SEG ***'
                SET ADDRESS OF DBPCB TO ADDRESS OF DBPCB1
                CALL "CBLTDLI"
                  USING REPL, DBPCB, ACCOUNT-SEG
-
+               DISPLAY '*** ACCOUNT-ACTIVITY: REPL RETURNED, DBSTAT = '
+                 DBSTAT
                IF DBSTAT NOT = SPACES
+                 DISPLAY '*** ACCOUNT-ACTIVITY: REPL FAILED ***'
                  MOVE DBSTAT TO SC
                  MOVE BAD-STATUS TO MSG-OUT
                  DISPLAY "Bad status code: " SC
+               ELSE
+                 DISPLAY '*** ACCOUNT-ACTIVITY: ACCOUNT UPDATED ***'
                END-IF
       * RETRIEVE BALANCE TO RETURN TO CLIENT
                COMPUTE BALANCE-ZONED = BALANCE-ACC + 0
                MOVE BALANCE-ZONED TO MSG-OUT
+               DISPLAY '*** ACCOUNT-ACTIVITY: BALANCE TO RETURN = '
+                 BALANCE-ZONED
 
+               DISPLAY '*** ACCOUNT-ACTIVITY: GETTING ACCOUNT SUMMARY ***'
                PERFORM GET-ACCOUNT-SUMMARY THRU
                  GET-ACCOUNT-SUMMARY-END
              END-IF
            END-IF.
+           DISPLAY '*** ACCOUNT-ACTIVITY: ENDING ***'.
 
        ACCOUNT-ACTIVITY-END.
 
       * PROCEDURE GET-ACCOUNT-SUMMARY
        GET-ACCOUNT-SUMMARY.
       *    RETRIEVE CUSTOMER'S ACCOUNT
+           DISPLAY '*** GET-ACCOUNT-SUMMARY: STARTING ***'.
            MOVE 0 TO TERM-LOOP.
            MOVE GHU TO NEXT-CALL.
            COMPUTE CA-CUSTID = FUNCTION NUMVAL ( IN-CUSTID ).
+           DISPLAY '*** GET-ACCOUNT-SUMMARY: CA-CUSTID = ' CA-CUSTID.
            COMPUTE TOTAL-ACCS = 0.
            PERFORM WITH TEST AFTER UNTIL TERM-LOOP = 1
              SET ADDRESS OF DBPCB TO ADDRESS OF DBPCB2
+             DISPLAY '*** GET-ACCOUNT-SUMMARY: CALLING ' NEXT-CALL
+               ' FOR CUSTACCS ***'
              CALL 'CBLTDLI'
                USING NEXT-CALL, DBPCB, CUSTACCS-SEG, CUSTACCS-SSA2
+             DISPLAY '*** GET-ACCOUNT-SUMMARY: DBSTAT = ' DBSTAT
              IF DBSTAT = SPACES
       *        ISSUE CALL TO ACCOUNT-SEG
+               DISPLAY '*** GET-ACCOUNT-SUMMARY: CUSTACCS FOUND ***'
+               DISPLAY '*** GET-ACCOUNT-SUMMARY: ACCID-CA = ' ACCID-CA
                MOVE ACCID-CA TO ACCID
                SET ADDRESS OF DBPCB TO ADDRESS OF DBPCB1
                CALL 'CBLTDLI'
                  USING GHU, DBPCB, ACCOUNT-SEG, ACCOUNT-SSA1
+               DISPLAY '*** GET-ACCOUNT-SUMMARY: ACCOUNT DBSTAT = '
+                 DBSTAT
                IF DBSTAT = SPACES
                  COMPUTE TOTAL-ACCS = TOTAL-ACCS + 1
+                 DISPLAY '*** GET-ACCOUNT-SUMMARY: ACCOUNT #'
+                   TOTAL-ACCS ' FOUND ***'
                  MOVE BALANCE-ACC TO BALANCE-AS(TOTAL-ACCS)
                  MOVE ACCTYPE-ACC TO ACCTYPE-AS(TOTAL-ACCS)
                  MOVE ACCID-ACC TO ACCID-AS(TOTAL-ACCS)
+                 DISPLAY '*** GET-ACCOUNT-SUMMARY: BALANCE = '
+                   BALANCE-ACC
+                 DISPLAY '*** GET-ACCOUNT-SUMMARY: ACCTYPE = '
+                   ACCTYPE-ACC
                ELSE
                  MOVE 1 TO TERM-LOOP
                  IF DBSTAT = GB OR DBSTAT = GE
+                   DISPLAY '*** GET-ACCOUNT-SUMMARY: NO MORE ACCOUNTS ***'
                    IF TOTAL-ACCS < 1
                      MOVE NOACCOUNT TO MSG-OUT
                    END-IF
                  ELSE
+                   DISPLAY '*** GET-ACCOUNT-SUMMARY: BAD STATUS ***'
                    MOVE DBSTAT TO SC
                    MOVE BAD-STATUS TO MSG-OUT
                  END-IF
@@ -420,10 +487,13 @@
              ELSE
                MOVE 1 TO TERM-LOOP
                IF DBSTAT = GB OR DBSTAT = GE
+                 DISPLAY '*** GET-ACCOUNT-SUMMARY: NO MORE CUSTACCS ***'
                  IF TOTAL-ACCS < 1
+                   DISPLAY '*** GET-ACCOUNT-SUMMARY: CUSTOMER NOT FOUND ***'
                    MOVE NOCUSTOMER TO MSG-OUT
                  END-IF
                ELSE
+                 DISPLAY '*** GET-ACCOUNT-SUMMARY: BAD STATUS ***'
                  MOVE DBSTAT TO SC
                  MOVE BAD-STATUS TO MSG-OUT
                END-IF
@@ -432,24 +502,33 @@
            END-PERFORM.
 
       *    CALCULATE LL VALUE FOR OUTPUT MESSAGE
+           DISPLAY '*** GET-ACCOUNT-SUMMARY: TOTAL-ACCS = ' TOTAL-ACCS.
            COMPUTE LL-OUT = 48 + (TOTAL-ACCS
              * (LENGTH OF ACCOUNT-SUMMARY(1))).
+           DISPLAY '*** GET-ACCOUNT-SUMMARY: LL-OUT = ' LL-OUT.
+           DISPLAY '*** GET-ACCOUNT-SUMMARY: ENDING ***'.
        GET-ACCOUNT-SUMMARY-END.
 
       * PROCEDURE INSERT-IO : INSERT FOR IOPCB REQUEST HANDLER
 
        INSERT-IO.
+           DISPLAY '*** INSERT-IO: STARTING ***'.
            COMPUTE LL-OUT = LENGTH OF OUTPUT-AREA.
-      *    DISPLAY 'INSERT-IO'.
-      *    DISPLAY 'LL-OUT : ' LL-OUT.
+           DISPLAY '*** INSERT-IO: LL-OUT = ' LL-OUT.
+           DISPLAY '*** INSERT-IO: MSG-OUT = ' MSG-OUT.
+           DISPLAY '*** INSERT-IO: TOTAL-ACCS = ' TOTAL-ACCS.
            MOVE 0 TO ZZ-OUT.
+           DISPLAY '*** INSERT-IO: CALLING ISRT ***'.
             CALL 'CBLTDLI' USING ISRT, LTERMPCB, OUTPUT-AREA.
-
+           DISPLAY '*** INSERT-IO: ISRT RETURNED, TPSTAT = ' TPSTAT.
            IF TPSTAT NOT = SPACES
              THEN
              DISPLAY 'INSERT TO IOPCB FAILED WITH STATUS CODE: '
                 TPSTAT
+           ELSE
+             DISPLAY '*** INSERT-IO: OUTPUT SENT SUCCESSFULLY ***'
            END-IF.
+           DISPLAY '*** INSERT-IO: ENDING ***'.
        INSERT-IO-END.
 
       * PROCEDURE JAVA-SAVEHIST
