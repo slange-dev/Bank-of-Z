@@ -4,6 +4,7 @@
 # Source library scripts
 # =========================
 
+echo "Test"
 LOCAL_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CONFIG_FILE="$LOCAL_SCRIPTS_DIR/config.yaml"
 set +e
@@ -24,24 +25,6 @@ if command -v chtag >/dev/null 2>&1; then
     chtag -t -c ISO8859-1 "$CONFIG_FILE"
 fi
 set -e
-
-check_python_deps() {
-    missing=""
-
-    python3 -c "import yaml" >/dev/null 2>&1 \
-        || missing="${missing} PyYAML"
-
-    python3 -c "from jinja2 import Template" >/dev/null 2>&1 \
-        || missing="${missing} Jinja2"
-
-    if [[ -n "$missing" ]]; then
-        echo "Installing:$missing"
-        pip3 install --user $missing
-        echo "pip rc=$?"
-    fi
-}
-
-check_python_deps
 
 export LIB_DIR="$LOCAL_SCRIPTS_DIR/../lib"
 source "$LIB_DIR/utilities.sh"
