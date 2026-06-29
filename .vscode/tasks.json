@@ -1,12 +1,27 @@
 {
     "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "releaseVersion",
+            "type": "promptString",
+            "description": "Release Version",
+            "default": "1.0.0"
+        },
+        {
+            "id": "buildNumber",
+            "type": "promptString",
+            "description": "Build Number",
+            "default": "1"
+        }
+    ],
     "tasks": [
         {
             "label": "Run Pipeline Simulation",
             "type": "shell",
-            "command": "bash",
+            "command": "./pipeline-local.sh",
             "args": [
-                "./pipeline-local.sh"
+                "${input:releaseVersion}",
+                "${input:buildNumber}"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/.setup"
