@@ -13,6 +13,8 @@
 #########################################################
 
 set -e  # Exit on error
+export APP_RELEASE_VERSION=$1
+export BUILD_NUMBER=$2
 
 # =========================
 # Source library scripts
@@ -86,6 +88,22 @@ stage_execute_pipeline() {
         print_error "Failed to execute pipeline on remote system"
         print_info "Check /tmp/pipeline.log for details"
         exit 1
+    fi
+
+    # Retrieve the DBB tar artifact from z/OS and delete it remotely
+    REMOTE_DBB_LOG_DIR="${BANK_OF_Z_WORK_DIR}/logs/dbb"
+    REMOTE_TAR=$(grep "\[DBB-BUILD\]\[TAR-PATH\]" /tmp/pipeline.log | tail -1 | sed 's/.*\[TAR-PATH\][[:space:]]*//' | tr -d '[:space:]' || true)
+    if [[ -n "$REMOTE_TAR" && "$REMOTE_TAR" != "NONE" ]]; then        
+        BUILD_NUMBER=$(basename "$REMOTE_TAR" | sed "s/^${APP_BASE_NAME}-//; s/\.tar$//")
+        LOCAL_TAR_PATH="$HOME/packages/${APP_BASE_NAME}.${APP_RELEASE_VERSION}/${BUILD_NUMBER}.tar"
+        mkdir -p "$(dirname "$LOCAL_TAR_PATH")"
+        print_info "Downloading tar artifact: $REMOTE_TAR -> $LOCAL_TAR_PATH"
+        zowe rse-api-for-zowe-cli download uss-file "$REMOTE_TAR" -b -f "$LOCAL_TAR_PATH"
+        print_success "Tar artifact downloaded to $LOCAL_TAR_PATH"
+        zowe rse-api-for-zowe-cli delete uss-file "$REMOTE_TAR"
+        print_success "Remote tar deleted: $REMOTE_TAR"
+    else
+        print_warning "No DBB tar artifact found in pipeline log"
     fi
 }
 
