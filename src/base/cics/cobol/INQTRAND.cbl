@@ -143,8 +143,6 @@
        PREMIERE SECTION.
        A010.
 
-           DISPLAY 'INQTRAND: Program started'.
-
       *
       *    Set up the abend handling
       *
@@ -152,8 +150,6 @@
               ABEND LABEL(ABEND-HANDLING)
            END-EXEC.
            
-           DISPLAY 'INQTRAND: Abend handler set'.
-
       *
       *    Validate eyecatcher
       *
@@ -161,32 +157,20 @@
               MOVE 'ITRD' TO INQTRAND-EYE
            END-IF.
            
-           DISPLAY 'INQTRAND: Eyecatcher validated'.
-           DISPLAY 'INQTRAND: SortCode=' INQTRAND-SORTCODE.
-           DISPLAY 'INQTRAND: AccNo=' INQTRAND-ACCNO.
-           DISPLAY 'INQTRAND: Date=' INQTRAND-DATE.
-           DISPLAY 'INQTRAND: Time=' INQTRAND-TIME.
-           DISPLAY 'INQTRAND: Ref=' INQTRAND-REF.
-
       *
       *    Initialize output flags
       *
            MOVE 'N' TO INQTRAND-SUCCESS.
            MOVE 'N' TO INQTRAND-FOUND.
            
-           DISPLAY 'INQTRAND: Flags initialized'.
-
       *
       *    Read transaction from DB2
       *
-           DISPLAY 'INQTRAND: About to read transaction'.
            PERFORM READ-TRANSACTION-DB2.
-           DISPLAY 'INQTRAND: Transaction read complete'.
 
       *
       *    Return results
       *
-           DISPLAY 'INQTRAND: Returning results'.
            PERFORM GET-ME-OUT-OF-HERE.
 
        A999.
@@ -196,15 +180,11 @@
        READ-TRANSACTION-DB2 SECTION.
        RTD010.
 
-           DISPLAY 'INQTRAND: READ-TRANSACTION-DB2 started'.
-
       *
       *    Prepare query parameters from input
       *
            MOVE INQTRAND-SORTCODE TO HV-PROCTRAN-SORTCODE.
            MOVE INQTRAND-ACCNO TO HV-PROCTRAN-NUMBER.
-           
-           DISPLAY 'INQTRAND: Query params set'.
            
       *    Convert DATE from YYYYMMDD to YYYY-MM-DD
            MOVE INQTRAND-DATE TO WS-DATE-YYYYMMDD.
@@ -214,29 +194,20 @@
            MOVE INQTRAND-TIME TO HV-PROCTRAN-TIME.
            MOVE INQTRAND-REF TO HV-PROCTRAN-REF.
            
-           DISPLAY 'INQTRAND: Date converted'.
-           DISPLAY 'INQTRAND: Date(ISO)=' HV-PROCTRAN-DATE.
-
       *
       *    Open the DB2 CURSOR
       *
-           DISPLAY 'INQTRAND: About to open cursor'.
            EXEC SQL OPEN TRAND-CURSOR
            END-EXEC.
            
-           DISPLAY 'INQTRAND: Cursor opened'.
-           DISPLAY 'INQTRAND: SQLCODE=' SQLCODE.
-
            IF SQLCODE NOT = 0
               MOVE SQLCODE TO SQLCODE-DISPLAY
-              DISPLAY 'INQTRAND: ERROR opening cursor'
               PERFORM ABEND-ROUTINE
            END-IF.
 
       *
       *    FETCH the transaction row
       *
-           DISPLAY 'INQTRAND: About to fetch transaction'.
            EXEC SQL FETCH TRAND-CURSOR
               INTO :HV-PROCTRAN-EYECATCHER,
                    :HV-PROCTRAN-SORTCODE,
@@ -249,11 +220,7 @@
                    :HV-PROCTRAN-AMOUNT
            END-EXEC.
            
-           DISPLAY 'INQTRAND: Fetch complete'.
-           DISPLAY 'INQTRAND: SQLCODE=' SQLCODE.
-
            IF SQLCODE = 0
-              DISPLAY 'INQTRAND: Transaction found'
       *
       *       Transaction found - populate output
       *
@@ -290,14 +257,12 @@
       *
       *          Transaction not found - this is not an error
       *
-                 DISPLAY 'INQTRAND: Transaction not found (100)'
                  MOVE 'N' TO INQTRAND-FOUND
                  MOVE 'Y' TO INQTRAND-SUCCESS
               ELSE
       *
       *          SQL error occurred
       *
-                 DISPLAY 'INQTRAND: ERROR fetching transaction'
                  MOVE SQLCODE TO SQLCODE-DISPLAY
                  PERFORM ABEND-ROUTINE
               END-IF
@@ -306,21 +271,14 @@
       *
       *    Close the DB2 CURSOR
       *
-           DISPLAY 'INQTRAND: About to close cursor'.
            EXEC SQL CLOSE TRAND-CURSOR
            END-EXEC.
            
-           DISPLAY 'INQTRAND: Cursor closed'.
-           DISPLAY 'INQTRAND: SQLCODE=' SQLCODE.
-
            IF SQLCODE NOT = 0
               MOVE SQLCODE TO SQLCODE-DISPLAY
-              DISPLAY 'INQTRAND: ERROR closing cursor'
               PERFORM ABEND-ROUTINE
            END-IF.
            
-           DISPLAY 'INQTRAND: READ-TRANSACTION-DB2 completed'.
-
        RTD999.
            EXIT.
 
