@@ -13,7 +13,6 @@ plugins {
 
 group = 'com.ibm.ims'
 version = '1.0.0-SNAPSHOT'
-archivesBaseName = 'nazare-ims-jmp'
 
 java {
     toolchain {
@@ -25,6 +24,7 @@ java {
 def outputDir = project.findProperty('outputDir') ?: layout.buildDirectory.get().asFile.absolutePath
 
 jar {
+    archiveBaseName = 'nazare-ims-jmp'
     destinationDirectory = file(outputDir)
 }
 
