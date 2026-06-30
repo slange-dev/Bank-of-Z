@@ -13,6 +13,7 @@ plugins {
 
 group = 'com.ibm.ims'
 version = '1.0.0-SNAPSHOT'
+archivesBaseName = 'nazare-ims-jmp'
 
 java {
     toolchain {
