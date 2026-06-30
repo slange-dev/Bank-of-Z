@@ -14,6 +14,7 @@
 import com.ibm.dbb.build.*
 import com.ibm.dbb.build.report.*
 import com.ibm.dbb.build.report.records.*
+import com.ibm.dbb.build.UnixExec
 import com.ibm.dbb.metadata.BuildResult
 import com.ibm.dbb.task.TaskConstants
 
@@ -70,14 +71,18 @@ def gradleDebug = config.getBooleanVariable('gradleDebug', false)
 def imsJavaRelativePath = config.getVariable('configSources') ?: 'src/base/ims/java'
 def imsJavaPath = "${workspace}/${appDirName}/${imsJavaRelativePath}"
 
-// Log file - same naming convention as zOSConnect (<appDirName>.ImsJavaBuilder.log)
+// Log file - same naming convention as zOSConnect
 def logFile = new File("${logsDirectory}/${appDirName}.ImsJavaBuilder.log")
+
+// Log encoding - same as zOSConnect
+def logEncoding = context.getVariable(TaskConstants.LOG_ENCODING) ?: 'IBM-1047'
 
 log.info("Gradle executable: ${gradlePath}")
 log.info("Shell:             ${shell}")
 log.info("Gradle debug:      ${gradleDebug}")
 log.info("IMS Java path:     ${imsJavaPath}")
 log.info("Log file:          ${logFile.absolutePath}")
+log.info("Log encoding:      ${logEncoding}")
 
 // -------------------------------------------------------------------------
 // Verify Gradle project directory exists
@@ -124,13 +129,6 @@ if (lifecycle == 'pipeline' || lifecycle == 'impact') {
 }
 
 // -------------------------------------------------------------------------
-// Build environment - propagate current environment variables
-// -------------------------------------------------------------------------
-def envList = []
-System.getenv().each { k, v -> envList << "$k=$v" }
-def env = envList as String[]
-
-// -------------------------------------------------------------------------
 // Run Gradle build
 // -------------------------------------------------------------------------
 try {
@@ -148,37 +146,29 @@ try {
     }
     gradleWorkDir.mkdirs()
 
-    def gradleCmd = "${gradlePath} clean jar -PoutputDir=${gradleWorkDir.absolutePath}${gradleDebug ? ' --debug' : ''}"
-    def gradleArgs = [shell, '-c', gradleCmd]
-    log.info("Executing: ${gradleArgs.join(' ')}")
+    // Build the options list: [gradlePath, clean, jar, -PoutputDir=..., (--debug)]
+    // Shell is set as the command and gradle invocation is passed as options,
+    // exactly as zOSConnect does with UnixExec
+    def optionsList = [gradlePath, 'clean', 'jar', "-PoutputDir=${gradleWorkDir.absolutePath}"]
+    if (gradleDebug) optionsList << '--debug'
+
+    log.info("Executing: ${shell} ${optionsList.join(' ')}")
     log.info("Working directory: ${imsJavaPath}")
     log.info("Gradle log file:   ${logFile.absolutePath}")
 
-    def gradleProc = gradleArgs.execute(env, new File(imsJavaPath))
+    if (logFile.exists()) logFile.delete()
 
-    // Stream Gradle output to the DBB logger and log file simultaneously (stderr merged in)
-    logFile.parentFile?.mkdirs()
-    logFile.withWriter('UTF-8') { writer ->
-        def mergedStream = new OutputStream() {
-            private StringBuilder line = new StringBuilder()
-            void write(int b) {
-                if (b == (int)'\n') {
-                    def lineStr = line.toString()
-                    log.info("[GRADLE] ${lineStr}")
-                    writer.writeLine(lineStr)
-                    line = new StringBuilder()
-                } else {
-                    line.append((char)b)
-                }
-            }
-        }
-        gradleProc.consumeProcessOutputStream(mergedStream)
-        gradleProc.consumeProcessErrorStream(mergedStream)
-        gradleProc.waitFor()
-    }
+    UnixExec gradleExec = new UnixExec().command(shell)
+    gradleExec.setOptions(optionsList)
+    gradleExec.output(logFile.absolutePath).mergeErrors(true)
+    gradleExec.setWorkingDirectory(imsJavaPath)
+    gradleExec.setOutputEncoding(logEncoding)
 
-    if (gradleProc.exitValue() != 0) {
-        log.error("Gradle build failed with exit code: ${gradleProc.exitValue()}")
+    int gradleRc = gradleExec.execute()
+    log.info("[GRADLE] output written to: ${logFile.absolutePath}")
+
+    if (gradleRc != 0) {
+        log.error("Gradle build failed with exit code: ${gradleRc}")
         log.error("See log file for details: ${logFile.absolutePath}")
         context.setVariable(TaskConstants.STATUS, BuildResult.ERROR)
         return 8
